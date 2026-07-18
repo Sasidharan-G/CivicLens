@@ -4,7 +4,7 @@ def test_deployment_readiness_detects_unsafe_production_config(client,monkeypatc
     from app.config import settings
     assert client.get('/api/ready').json()['status']=='ready'
     monkeypatch.setattr(settings,'environment','production');monkeypatch.setattr(settings,'database_url','sqlite:///unsafe.db');monkeypatch.setattr(settings,'jwt_secret_key','development-only-change-me');monkeypatch.setattr(settings,'cors_origins','http://localhost:5173');monkeypatch.setattr(settings,'app_base_url','http://localhost:5173');monkeypatch.setattr(settings,'internal_jobs_secret',None)
-    response=client.get('/api/ready');assert response.status_code==503;body=response.json();assert body['status']=='not_ready';assert len(body['errors'])>=5
+    response=client.get('/api/ready');assert response.status_code==503;body=response.json();assert body['status']=='not_ready';assert len(body['errors'])>=4;assert any('Cloudinary' in warning for warning in body['warnings'])
 def test_phase_eight_analytics_filters_privacy_and_exports(client,citizen,admin):
     client.post('/api/complaints',json={**payload(),"locality":"Adyar","ward":"Ward 101"},headers=citizen)
     public=client.get('/api/public/analytics?locality=Adyar').json();assert public['total']==1;assert public['ward_health'][0]['ward']=='Ward 101';assert 'department_performance' not in public;assert 'category_forecast' in public
