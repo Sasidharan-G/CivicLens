@@ -1,0 +1,7 @@
+import {createContext,useContext,useMemo,useState} from 'react';
+type Lang='en'|'ta';
+const messages={en:{map:'Issue map',insights:'Civic insights',dashboard:'Dashboard',report:'Report issue',login:'Log in',start:'Get started',photo:'Photo',analysis:'AI analysis',details:'Details',location:'Location',similar:'Similar',letter:'Letter',submit:'Submit'},ta:{map:'புகார் வரைபடம்',insights:'நகர நுண்ணறிவு',dashboard:'முகப்புப் பலகை',report:'பிரச்சினையைப் புகாரளி',login:'உள்நுழை',start:'தொடங்குங்கள்',photo:'புகைப்படம்',analysis:'AI பகுப்பாய்வு',details:'விவரங்கள்',location:'இடம்',similar:'ஒத்த புகார்கள்',letter:'கடிதம்',submit:'சமர்ப்பி'}} as const;
+type Key=keyof typeof messages.en;
+const I18n=createContext<{lang:Lang;setLang:(l:Lang)=>void;t:(k:Key)=>string}>({lang:'en',setLang:()=>{},t:k=>messages.en[k]});
+export function I18nProvider({children}:{children:React.ReactNode}){const [lang,setLangState]=useState<Lang>(()=>(localStorage.getItem('language') as Lang)||'en');const value=useMemo(()=>({lang,setLang:(l:Lang)=>{localStorage.setItem('language',l);setLangState(l)},t:(k:Key)=>messages[lang][k]}),[lang]);return <I18n.Provider value={value}>{children}<button aria-label="Change language" className="fixed bottom-5 right-5 z-[1200] rounded-full bg-navy px-4 py-3 text-sm font-bold text-white shadow-xl" onClick={()=>value.setLang(lang==='en'?'ta':'en')}>{lang==='en'?'தமிழ்':'EN'}</button></I18n.Provider>}
+export const useI18n=()=>useContext(I18n);

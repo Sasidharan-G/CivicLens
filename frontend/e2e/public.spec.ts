@@ -1,0 +1,8 @@
+import AxeBuilder from '@axe-core/playwright';
+import {expect,test} from '@playwright/test';
+test.beforeEach(async({page})=>{
+  await page.route('http://localhost:8000/api/public/recent',route=>route.fulfill({json:[]}));
+  await page.route(/http:\/\/localhost:8000\/api\/public\/analytics.*/,route=>route.fulfill({json:{total:20,resolved:12,open:8,resolution_rate:60,civic_health_score:76,avg_first_response_hours:4,avg_resolution_hours:72,sla_compliance_rate:80,reopened_rate:5,citizen_satisfaction_score:75,satisfaction_method:'confirmed resolutions / resolved complaints',by_category:{Pothole:8,Garbage:4},by_status:{resolved:12,submitted:8},by_severity:{high:10,medium:10},by_locality:{Adyar:8},ward_health:[{ward:'Ward 101',reports:8,open:3,health_score:82}],hotspots:[{locality:'Adyar',reports:8,latitude:13,longitude:80.2}],monthly_trends:[{month:'2026-07',reported:20,resolved:12}],category_forecast:[{category:'Pothole',forecast:8,method:'monthly run-rate'}],filters:{start_date:null,end_date:null,locality:null},demo_data:true}}));
+});
+test('citizen can open landing and public analytics',async({page})=>{await page.goto('/');await expect(page.getByRole('heading',{name:/see a problem/i})).toBeVisible();const menu=page.getByRole('button',{name:'Toggle navigation'});if(await menu.isVisible())await menu.click();await page.getByRole('link',{name:/civic insights/i}).click();await expect(page.getByRole('heading',{name:/chennai civic health/i})).toBeVisible();await expect(page.getByText('76/100')).toBeVisible()});
+test('landing has no serious accessibility violations',async({page})=>{await page.goto('/');const results=await new AxeBuilder({page}).analyze();expect(results.violations.filter(item=>['serious','critical'].includes(item.impact||''))).toEqual([])});

@@ -1,0 +1,16 @@
+name: Production health monitor
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+jobs:
+  health:
+    if: ${{ vars.PRODUCTION_HEALTH_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify API health
+        env:
+          HEALTH_URL: ${{ vars.PRODUCTION_HEALTH_URL }}
+        run: |
+          response=$(curl --fail --silent --show-error --retry 2 --retry-delay 10 "$HEALTH_URL")
+          echo "$response" | jq -e '.status == "ready" and .database == "connected" and (.errors | length == 0)'
