@@ -33,9 +33,9 @@ def decode_embedding(value:str|None)->list[float]:
     except (ValueError,TypeError):return []
 
 def candidates(db:Session,lat:float,lon:float,radius:float)->list[Complaint]:
-    if db.bind and db.bind.dialect.name=="postgresql":
-        ids=db.execute(text("SELECT id FROM complaints WHERE status NOT IN ('resolved','rejected','duplicate') AND ST_DWithin(geo,ST_SetSRID(ST_MakePoint(:lon,:lat),4326)::geography,:radius)"),{"lat":lat,"lon":lon,"radius":radius}).scalars().all()
-        return list(db.scalars(select(Complaint).where(Complaint.id.in_(ids))).all()) if ids else []
+    # Keep this query portable for fresh managed PostgreSQL databases where
+    # optional PostGIS migrations may not have run yet. Exact distance is
+    # calculated by hybrid_score before a candidate is returned.
     lat_delta=radius/111320;lon_delta=radius/max(1,111320*math.cos(math.radians(lat)))
     return list(db.scalars(select(Complaint).where(Complaint.status.notin_([Status.resolved,Status.rejected,Status.duplicate]),Complaint.latitude.between(lat-lat_delta,lat+lat_delta),Complaint.longitude.between(lon-lon_delta,lon+lon_delta))).all())
 

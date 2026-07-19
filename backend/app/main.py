@@ -257,8 +257,6 @@ def similar(data:SimilarRequest,db:Session=Depends(get_db)):
 @app.post("/api/complaints",status_code=201)
 def create_complaint(data:ComplaintCreate,db:Session=Depends(get_db),u:User=Depends(current_user)):
     validate_content(data.title+" "+data.description);guard_complaint_spam(db,u.id,data.title,data.description);values=data.model_dump(exclude={"media"});media=data.media;values["title"]=mask_pii(values["title"]);values["description"]=mask_pii(values["description"]);values["address"]=mask_pii(values["address"]) if values.get("address") else None;values["text_embedding"]=encode_embedding(values["title"]+" "+values["description"]);c=Complaint(**values,reference_number=reference(db),reporter_id=u.id); db.add(c); db.flush()
-    if db.bind and db.bind.dialect.name=="postgresql":
-        vector="["+",".join(str(x) for x in text_embedding(c.title+" "+c.description))+"]";db.execute(text("UPDATE complaints SET geo=ST_SetSRID(ST_MakePoint(:lon,:lat),4326)::geography, embedding=CAST(:embedding AS vector) WHERE id=:id"),{"lon":c.longitude,"lat":c.latitude,"embedding":vector,"id":c.id})
     for item in media:db.add(ComplaintMedia(complaint_id=c.id,url=item.url,public_id=item.public_id,mime_type=item.mime_type,media_type="issue",uploaded_by_id=u.id))
     if not media and c.image_url:db.add(ComplaintMedia(complaint_id=c.id,url=c.image_url,public_id=c.image_public_id,mime_type="image/jpeg",media_type="issue",uploaded_by_id=u.id))
     if c.severity==Severity.critical and (c.ward or c.locality):
