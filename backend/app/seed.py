@@ -7,14 +7,33 @@ from .security import hash_password
 
 categories=[("Pothole","Roads Department"),("Garbage accumulation","Solid Waste Management"),("Water leakage","Chennai Metro Water"),("Sewage overflow","Chennai Metro Water"),("Broken streetlight","Electrical Department"),("Open drain","Storm Water Drains"),("Fallen tree","Parks Department")]
 places=[("T. Nagar",13.0418,80.2341),("Adyar",13.0067,80.2570),("Anna Nagar",13.0850,80.2101),("Mylapore",13.0339,80.2697),("Velachery",12.9815,80.2180),("Perambur",13.1210,80.2326),("Besant Nagar",13.0003,80.2667)]
+
+DEMO_USERS = [
+    ("CivicLens Admin", "admin@civiclens.demo", "Admin@123", Role.admin),
+    ("Arun Kumar", "citizen@civiclens.demo", "Citizen@123", Role.citizen),
+    ("Meena Ravi", "meena@civiclens.demo", "Citizen@123", Role.citizen),
+]
+
+def ensure_demo_users(db):
+    """Create or repair the public demo accounts without touching other users."""
+    users=[]
+    for name,email,password,role in DEMO_USERS:
+        u=db.scalar(select(User).where(User.email==email))
+        if not u:
+            u=User(full_name=name,email=email,password_hash=hash_password(password),role=role,locality="Chennai",is_active=True,is_email_verified=True)
+            db.add(u);db.flush()
+        else:
+            u.full_name=name;u.role=role;u.locality=u.locality or "Chennai";u.is_active=True;u.is_email_verified=True
+            from .security import verify_password
+            if not verify_password(password,u.password_hash):u.password_hash=hash_password(password)
+        users.append(u)
+    db.commit()
+    return users
+
 def seed():
     Base.metadata.create_all(engine); db=SessionLocal()
     try:
-        users=[]
-        for name,email,password,role in [("CivicLens Admin","admin@civiclens.demo","Admin@123",Role.admin),("Arun Kumar","citizen@civiclens.demo","Citizen@123",Role.citizen),("Meena Ravi","meena@civiclens.demo","Citizen@123",Role.citizen)]:
-            u=db.scalar(select(User).where(User.email==email))
-            if not u: u=User(full_name=name,email=email,password_hash=hash_password(password),role=role,locality="Chennai");db.add(u);db.flush()
-            users.append(u)
+        users=ensure_demo_users(db)
         if db.scalar(select(Complaint).limit(1)): db.commit(); return
         random.seed(42)
         titles={"Pothole":"Deep pothole causing traffic hazard","Garbage accumulation":"Uncollected waste near residential street","Water leakage":"Continuous water leak on main road","Sewage overflow":"Sewage overflowing onto pedestrian path","Broken streetlight":"Streetlight not working after dark","Open drain":"Open drain poses public safety risk","Fallen tree":"Fallen tree blocking part of road"}
@@ -26,4 +45,3 @@ def seed():
         db.commit(); print("CivicLens demo data seeded")
     finally: db.close()
 if __name__=="__main__": seed()
-

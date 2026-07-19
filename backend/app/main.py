@@ -27,6 +27,7 @@ from .services.storage import storage
 from .services.categories import guidance
 from .services.workflow import is_overdue, transition
 from .middleware import SecurityHeadersMiddleware, SimpleRateLimitMiddleware
+from .seed import ensure_demo_users
 
 if settings.sentry_dsn:
     import sentry_sdk
@@ -37,6 +38,8 @@ async def lifespan(app:FastAPI):
     # deployed runtime.  Keep startup idempotent so a fresh production
     # database is initialized on the first cold start as well as locally.
     Base.metadata.create_all(engine)
+    with Session(engine) as db:
+        ensure_demo_users(db)
     yield
 app=FastAPI(title="CivicLens API",version="1.1.0",description="AI-powered civic issue reporting API",lifespan=lifespan)
 app.add_middleware(CORSMiddleware,allow_origins=settings.origins,allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
