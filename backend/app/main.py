@@ -33,7 +33,10 @@ if settings.sentry_dsn:
     sentry_sdk.init(dsn=settings.sentry_dsn,environment=settings.environment,traces_sample_rate=.1,send_default_pii=False)
 @asynccontextmanager
 async def lifespan(app:FastAPI):
-    if not settings.is_production:Base.metadata.create_all(engine)
+    # Vercel's managed database credentials are only available inside the
+    # deployed runtime.  Keep startup idempotent so a fresh production
+    # database is initialized on the first cold start as well as locally.
+    Base.metadata.create_all(engine)
     yield
 app=FastAPI(title="CivicLens API",version="1.1.0",description="AI-powered civic issue reporting API",lifespan=lifespan)
 app.add_middleware(CORSMiddleware,allow_origins=settings.origins,allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
